@@ -1,20 +1,40 @@
-import { useState } from 'react'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import Home from './components/Home';
+import Login from './components/Login';
+import './styles/App.css'; 
+import 'bootstrap/dist/css/bootstrap.min.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+function AppContent() {
+  const location = useLocation();
 
+  const getBackgroundClass = () => {
+    switch (location.pathname) {
+      case '/':
+        return 'login-background'; 
+      default:
+        return 'all-background';
+    }
+  };  
+  
   return (
-    <>
-      <h1>teste</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-      </div>
-
-    </>
-  )
+    <div className={getBackgroundClass()}>
+      <Routes>
+        <Route path="/home" element={<Home />} />
+        <Route path="/" element={<Login />} />
+      </Routes>
+    </div>
+  );
 }
 
-export default App
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
+  );
+}
+
+export default App;
+
+
+

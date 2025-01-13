@@ -1,32 +1,68 @@
-import axios from 'axios'
-import { useEffect, useState } from 'react'
+import axios from 'axios';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; 
+import { Col, Container, Form, Row } from 'react-bootstrap';
+import "../styles/Login.css";
 
 const Login = () => {
+  const [username, setUsername] = useState(''); 
+  const [password, setPassword] = useState(''); 
+  const [error, setError] = useState(null); 
+  const navigate = useNavigate(); 
 
-  const [pessoa, setPessoa] = useState([])
-
-  const getPessoa = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
     try {
-      const response = await axios.get('http://localhost:8000/server.php');
-      setPessoa(response.data);
+      const response = await axios.post(
+        'http://localhost:8000/server.php?action=login',
+        { username: username,
+          password: password, }, { withCredentials: true });
+
+      if (response.data.message === 'Login bem-sucedido') {
+        navigate('/home'); 
+      } else {
+        setError('Falha no login.');
+      }
     } catch (error) {
-      console.error("Erro ao buscar pessoas:", error)
+      setError('Usuário ou senha incorretos.');
     }
   };
-  useEffect(() => {
-    getPessoa()
-  }, []);
 
   return (
-    <>
-      <h1>Login</h1>
-      <ul>
-        {pessoa.map((pessoa) => (
-          <li key={pessoa.pess_id}>{pessoa.nome}</li>
-        ))}
-      </ul>
-    </>
-  )
-}
+    <div className="container-login">
+      <div className="login">
+        <h1 className="row justify-content-md-center">Login</h1>
+        <Form onSubmit={handleLogin}>
+          <Form.Group as={Col} className="mb-3">
+            <Form.Label>Usuário:</Form.Label>
+            <Form.Control
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+            <Form.Label>Senha:</Form.Label>
+            <Form.Control 
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </Form.Group>
+          <Container>
+            <Row>
+              <Col>
+                <button sm={5} className="btn btn-success" type="submit">
+                  Entrar
+                </button>
+              </Col>
+            </Row>
+          </Container>
+        </Form>
+        {error && <p className="error">{error}</p>}
+      </div>
+    </div>
+  );
+};
 
-export default Login
+export default Login;
