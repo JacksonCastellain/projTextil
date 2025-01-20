@@ -14,17 +14,17 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await axios.post(
-        'http://localhost:8000/server.php?action=login',
+        'http://localhost:80/server.php?action=login',
         { username: username,
           password: password, }, { withCredentials: true });
 
-      if (response.data.message === 'Login bem-sucedido') {
+      if (response.status === 200) {
         navigate('/home'); 
       } else {
-        setError('Falha no login.');
+        setError(response.data.error || 'Falha no login.');
       }
     } catch (error) {
-      setError('Usuário ou senha incorretos.');
+      setError(error.response?.data?.error || 'Usuário ou senha incorretos.');
     }
   };
 
@@ -39,6 +39,7 @@ const Login = () => {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
               required
             />
             <Form.Label>Senha:</Form.Label>
@@ -46,6 +47,7 @@ const Login = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               required
             />
           </Form.Group>

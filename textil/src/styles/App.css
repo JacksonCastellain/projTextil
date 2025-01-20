@@ -4,18 +4,18 @@
 }
 
 .all-background {
-  background-color: #0ee0e01a;
+  background-color: #fff;
 }
 
 .all-background, .login-background {
-  height: 100vh; /* Define a altura como 100% da altura da janela */
-  width: 100vw;  /* Define a largura como 100% da largura da janela */
-  background-position: center; /* Centraliza a imagem */
-  background-repeat: no-repeat; /* Evita que a imagem se repita */
-  background-attachment: fixed; /* Mantém a imagem fixa ao rolar a página */
-  margin: 0; /* Remove qualquer margem */
-  padding: 0; /* Remove qualquer padding */
-  overflow: hidden; /* Impede que o conteúdo extra vaze */
+  height: 100vh; 
+  width: 100vw;
+  background-position: center;
+  background-repeat: no-repeat; 
+  background-attachment: fixed; 
+  margin: 0; 
+  padding: 0; 
+  overflow: hidden; 
 }
 
 

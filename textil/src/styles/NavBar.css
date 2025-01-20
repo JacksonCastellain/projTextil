@@ -1,0 +1,19 @@
+.navBarNav {
+  width: 95vw;
+  display: flex;
+  justify-content: space-between;
+}
+
+.navBarLink {
+  color: #000;
+  font-weight: 500;
+  font-size: large;
+  text-decoration: none;
+  margin: 0;
+  text-align: center;
+}
+
+.navBarLink:hover {
+  color: #041839a3;
+  text-decoration: underline;
+}
