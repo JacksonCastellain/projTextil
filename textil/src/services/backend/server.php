@@ -2,6 +2,9 @@
 
 require_once __DIR__ . '/../connect/conn.php';
 
+
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 session_start();
 
 $allowed_origins = ['http://localhost:5173', 'http://localhost:5174'];
@@ -78,7 +81,7 @@ if ($_GET['action'] === 'home') {
 } 
 
 
-if ($_GET['action'] === 'colaboradores') {
+if ($_GET['action'] === 'colaboradores' || $_GET['action'] === 'updateColaborador') {
     require "Routes/colaboradoresRoutes.php";
     error_log("Usuário logado: " . ($_SESSION['user'] ?? 'Nenhum usuário logado'));
 }

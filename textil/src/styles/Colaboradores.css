@@ -1,0 +1,27 @@
+h1  {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 1rem;
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.table {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.admin-yes {
+    color: rgb(79, 165, 83) !important;
+    font-weight: bolder;
+}
+
+.admin-no {
+    color: rgb(229, 16, 16) !important;
+    font-weight: bolder;
+}
+
+
+
+
