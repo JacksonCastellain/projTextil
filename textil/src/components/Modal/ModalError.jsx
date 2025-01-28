@@ -1,13 +1,13 @@
 import React from 'react';
 import { Modal, Button } from 'react-bootstrap';
 
-const ModalSucesso = ({ show, onClose, message = "Operação concluída com sucesso!" }) => {
+const ModalError = ({ show, onClose, message = "Erro na operação!" }) => {
   return (
     <Modal show={show} onHide={onClose} centered >
       <Modal.Header closeButton>
       </Modal.Header>
       <Modal.Body className='text-center'>
-        <img src="\img\success.png"  alt="Sucesso" className='text-center w-50' />
+        <img src="\img\error.png"  alt="Erro" className='text-center w-50' />
         <p>{message}</p>
       </Modal.Body>
       <Modal.Footer className='justify-content-center'>
@@ -19,4 +19,4 @@ const ModalSucesso = ({ show, onClose, message = "Operação concluída com suce
   );
 };
 
-export default ModalSucesso;
+export default ModalError;

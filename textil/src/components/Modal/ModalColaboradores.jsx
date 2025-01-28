@@ -1,114 +1,149 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button } from 'react-bootstrap';
-import ModalSucesso from './ModalSucesso';
+import ModalError from '../Modal/ModalError';
 
-const ModalColaboradores = ({ show, onClose, colaborador, onUpdate }) => {
+const ModalColaboradores = ({ show, onClose, colaborador, onUpdate, mode }) => {
   const [nome, setNome] = useState('');
+  const [senha, setSenha] = useState('');
   const [ender, setEnder] = useState('');
   const [fone, setFone] = useState('');
   const [is_admin, setIsAdmin] = useState(false);
-  const [showModalSucesso, setShowModalSucesso] = useState(false);
+  const [showModalError, setShowModalError] = useState(false);
 
   useEffect(() => {
-    if (colaborador) {
-      setNome(colaborador.nome); 
+    if (mode === 'edit' && colaborador) {
+      setNome(colaborador.nome);
       setEnder(colaborador.ender);
       setFone(colaborador.fone);
       setIsAdmin(colaborador.is_admin);
+    } else {
+      setNome('');
+      setSenha('');
+      setEnder('');
+      setFone('');
+      setIsAdmin(false);
     }
-  }, [colaborador]);
+  }, [colaborador, mode]);
 
   const handleSave = async () => {
     try {
-      const response = await fetch(`http://localhost/server.php?action=updateColaborador&id=${colaborador.id}`, {
-        method: "PUT",
+      const url = mode === 'edit' && colaborador
+        ? `http://localhost/server.php?action=updateColaborador&id=${colaborador.id}`
+        : `http://localhost/server.php?action=addColaborador`;
+
+      const method = mode === 'edit' ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method: method,
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ nome, ender, fone, is_admin }),
-        credentials: "include" 
+        body: JSON.stringify({ nome, senha, ender, fone, is_admin }),
+        credentials: "include"
       });
-  
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
       const result = await response.json();
-      onUpdate({ ...colaborador, nome, ender, fone, is_admin });
-      setShowModalSucesso(true);
-      
+
+      if (mode === 'edit' && colaborador) {
+        onUpdate({ ...colaborador, nome, ender, fone, is_admin });
+      }
+  
+      if (mode === 'add') {
+        onUpdate({ id: result.id, nome, senha, ender, fone, is_admin });
+      }
+
+      onClose();
     } catch (error) {
+      setShowModalError(true);
       console.error("Erro na requisição:", error);
     }
   };
 
-  const handleClose = () => {
-    setNome(colaborador ? colaborador.nome : ''); 
-    onClose(); 
+  const ModalerrorClose = () => {
+    setShowModalError(false);
   };
 
-  const handleSucessoClose = () => {
-    setShowModalSucesso(false);
-    onClose();
-  };
-  
-  
+  const title = mode === 'edit' ? 'Editar Colaborador' : 'Incluir Colaborador';
+
   return (
-    <Modal show={show} onHide={handleClose} centered size="xs">
+    <Modal show={show} onHide={onClose} centered>
       <Modal.Header closeButton>
-        <Modal.Title>Editar Colaborador</Modal.Title>
+        <Modal.Title>{title}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {colaborador ? (
-          <div>
+        <form onSubmit={(e) => e.preventDefault()}>
+          {mode === 'edit' && colaborador && (
             <div>
               <label className="form-label"><strong>ID</strong></label>
               <input type="text" className="form-control" value={colaborador.id} readOnly />
             </div>
+          )}
+          <div>
+            <label className="form-label"><strong>Nome</strong></label>
+            <input
+              type="text"
+              className="form-control"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+            />
+          </div>
+          {mode !== 'edit' && (
             <div>
-              <label className="form-label"><strong>Nome</strong></label>
-              <input
-                type="text"
+              <label className="form-label"><strong>Senha</strong></label>
+              <input 
+                type="password" 
                 className="form-control"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)} 
               />
             </div>
-            <div>
-              <label className="form-label"><strong>Endereço</strong></label>
-              <input
-                type="text"
-                className="form-control"
-                value={ender}
-                onChange={(e) => setEnder(e.target.value)}
-              />
-            </div>
-            <div className="row">
-              <div className="col">
+          )}
+          <div>
+            <label className="form-label"><strong>Endereço</strong></label>
+            <input
+              type="text"
+              className="form-control"
+              value={ender}
+              onChange={(e) => setEnder(e.target.value)}
+            />
+          </div>
+          <div className="row">
+            <div className="col">
               <label className="form-label"><strong>Telefone</strong></label>
               <input
                 type="text"
                 className="form-control"
                 value={fone}
                 onChange={(e) => setFone(e.target.value)}
-                />
-              </div>
-              <div className="col-4">
+              />
+            </div>
+            <div className="col-4">
               <label className="form-label"><strong>Admin</strong></label>
-              <input
-                type="boolean"
-                className={`form-control ${is_admin ? 'admin-yes' : 'admin-no'}`}
-                value={is_admin ? 'Sim' : 'Não'}
-                onChange={(e) => setIsAdmin(e.target.value)}
-                />
-                </div>
+              <select
+                className="form-select"
+                value={is_admin.toString()}
+                onChange={(e) => setIsAdmin(e.target.value === 'true')}
+              >
+                <option value="false">Não</option>
+                <option value="true">Sim</option>
+              </select>
             </div>
           </div>
-        ) : (
-          <p>Carregando...</p>
-        )}
+        </form>
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onClose}>Fechar</Button>
         <Button variant="success" onClick={handleSave}>Salvar</Button>
       </Modal.Footer>
-      <ModalSucesso show={showModalSucesso} onClose={handleSucessoClose} message='Dados Atualizados com sucesso!' />
+      {mode === 'edit' ? (
+        <ModalError show={showModalError} onClose={ModalerrorClose} message='Erro ao atualizar Colaborador.'/>
+      ) : (
+        <ModalError show={showModalError} onClose={ModalerrorClose} message='Erro ao incluir colaborador.'/>
+      )}
     </Modal>
   );
 };

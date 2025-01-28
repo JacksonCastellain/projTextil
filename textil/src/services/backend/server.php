@@ -11,7 +11,7 @@ $allowed_origins = ['http://localhost:5173', 'http://localhost:5174'];
 if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
     header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
 } else {
-    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Origin: http://localhost:5173');
 }
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
 header('Access-Control-Allow-Methods: POST, GET, PUT, DELETE, OPTIONS');
@@ -37,7 +37,6 @@ try {
     echo "Error: " . $e->getMessage();
 }
 
-// Verificar login
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'login') {
     $data = json_decode(file_get_contents('php://input'), true);
     $username = $data['username'] ?? '';
@@ -81,7 +80,7 @@ if ($_GET['action'] === 'home') {
 } 
 
 
-if ($_GET['action'] === 'colaboradores' || $_GET['action'] === 'updateColaborador') {
+if ($_GET['action'] === 'colaboradores' || $_GET['action'] === 'updateColaborador' || $_GET['action'] === 'addColaborador' || $_GET['action'] === 'deleteColaborador') {
     require "Routes/colaboradoresRoutes.php";
     error_log("Usuário logado: " . ($_SESSION['user'] ?? 'Nenhum usuário logado'));
 }
