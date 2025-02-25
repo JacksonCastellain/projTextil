@@ -32,10 +32,10 @@ const NavBar = () => {
               <Link className="nav-link" to="/colaboradores">Colaboradores</Link>
             </li>
             <li className="nav-item">
-              <Link className="nav-link" to="/products">Produtos</Link>
+              <Link className="nav-link" to="/clientes">Clientes</Link>
             </li>
             <li className="nav-item">
-              <Link className="nav-link disabled" to="#" tabIndex="-1" aria-disabled="true">Disabled</Link>
+              <Link className="nav-link" to="/products">Produtos</Link>
             </li>
           </ul>
           <div className="d-flex justify-content-center">

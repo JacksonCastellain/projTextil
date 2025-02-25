@@ -2,82 +2,162 @@
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'colaboradores') {
     header('Content-Type: application/json');
+
     try {
-        $stmt = $pdo->query("SELECT pess_id AS id, nome, ender, fone, is_admin FROM pessoa order by pess_id asc");
-        $colaborador = $stmt->fetchAll();
-        echo json_encode($colaborador);
+        // Consulta para obter dados combinados de pessoa e funcionario
+        $stmt = $pdo->prepare("
+            SELECT 
+                p.pess_id AS id,
+                p.nome,
+                p.ender,
+                p.fone,
+                p.is_admin,
+                f.cpf,
+                '********' AS senha -- Oculta a senha por segurança
+            FROM 
+                pessoa p
+            JOIN 
+                funcionario f 
+            ON 
+                p.pess_id = f.pess_id
+            ORDER BY 
+                p.pess_id ASC
+        ");
+        $stmt->execute();
+
+        // Obtém os resultados
+        $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Retorna os dados como JSON
+        echo json_encode(["colaboradores" => $colaboradores]);
     } catch (PDOException $e) {
+        // Registra o erro no log e retorna uma resposta JSON de erro
         error_log('Erro PDO: ' . $e->getMessage());
+        echo json_encode(["error" => "Erro ao buscar colaboradores"]);
     }
 }
 
-if ($_GET['action'] === 'updateColaborador') {
+if ($_SERVER['REQUEST_METHOD'] === 'PUT' && isset($_GET['action']) && $_GET['action'] === 'updateColaborador') {
     header('Content-Type: application/json');
-
+    $data = json_decode(file_get_contents('php://input'), true);
     $id = $_GET['id'];
-    $data = json_decode(file_get_contents('php://input'), true);
-    $nome = $data['nome'] ?? null; 
-    $ender = $data['ender'] ?? null;
-    $fone = $data['fone'] ?? null;
-    $is_admin = $data['is_admin'] ?? false;
 
-    if ($nome && $id) {
-        $stmt = $pdo->prepare("UPDATE pessoa SET nome = ?, ender = ?, fone = ?, is_admin = ? WHERE pess_id = ?");
-        if ($stmt->execute([$nome, $ender, $fone, $is_admin ? 'true' : 'false', $id])) {
-            echo json_encode(["message" => "Colaborador atualizado com sucesso"]);
-        } else {
-            echo json_encode(["error" => "Erro ao atualizar colaborador"]);
-        }
-    } else {
-        echo json_encode(["error" => "Dados inválidos recebidos"]);
-    }
-}
-
-if ($_GET['action'] === 'addColaborador') {
-    header('Content-Type: application/json');
-
-    $data = json_decode(file_get_contents('php://input'), true);
-
-    if (!$data) {
-        echo json_encode(["error" => "Falha ao processar JSON. Dados não válidos."]);
-        exit; 
-    }
-
-    $nome = $data['nome'] ?? null;
-    $senha = $data['senha'] ?? null;
-    $ender = $data['ender'] ?? null;
-    $fone = $data['fone'] ?? null;
-    $is_admin = $data['is_admin'] ?? false;
-
-    if (!$nome || !$senha) {
-        echo json_encode(["error" => "Nome e senha são obrigatórios"]);
+    // Validação dos campos obrigatórios
+    if (!$id || !$data['nome'] || !$data['cpf'] || !$data['senha']) {
+        echo json_encode(["error" => "ID, nome, CPF e senha são obrigatórios"]);
         exit;
     }
 
-    $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
+    $senhaHash = password_hash($data['senha'], PASSWORD_DEFAULT);
 
-    $stmt = $pdo->prepare("INSERT INTO pessoa (nome, senha, ender, fone, is_admin) VALUES (?, ?, ?, ?, ?)");
-    if ($stmt->execute([$nome, $senhaHash, $ender, $fone, $is_admin ? 'true' : 'false'])) {
-        echo json_encode(["message" => "Colaborador adicionado com sucesso"]);
-    } else {
-        echo json_encode(["error" => "Erro ao adicionar colaborador"]);
+    try {
+        $pdo->beginTransaction();
+
+        // Atualiza na tabela `pessoa`
+        $stmtPessoa = $pdo->prepare("UPDATE pessoa SET nome = ?, ender = ?, fone = ?, is_admin = ? WHERE pess_id = ?");
+        $stmtPessoa->execute([$data['nome'], $data['ender'], $data['fone'], $data['is_admin'] ? 'true' : 'false', $id]);
+
+        // Atualiza na tabela `funcionario`
+        $stmtFuncionario = $pdo->prepare("UPDATE funcionario SET cpf = ?, senha = ? WHERE pess_id = ?");
+        $stmtFuncionario->execute([$data['cpf'], $senhaHash, $id]);
+
+        $pdo->commit();
+
+        // Retorna o colaborador atualizado
+        echo json_encode([
+            "id" => $id,
+            "nome" => $data['nome'],
+            "cpf" => $data['cpf'],
+            "senha" => "********",
+            "ender" => $data['ender'],
+            "fone" => $data['fone'],
+            "is_admin" => $data['is_admin']
+        ]);
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        echo json_encode(["error" => "Erro ao atualizar colaborador: " . $e->getMessage()]);
     }
 }
 
-if ($_GET['action'] === 'deleteColaborador') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'addColaborador') {
     header('Content-Type: application/json');
+    $data = json_decode(file_get_contents('php://input'), true);
 
+    // Validação dos campos obrigatórios
+    if (!$data['nome'] || !$data['cpf'] || !$data['senha']) {
+        echo json_encode(["error" => "Nome, CPF e senha são obrigatórios"]);
+        exit;
+    }
+
+    $senhaHash = password_hash($data['senha'], PASSWORD_DEFAULT);
+
+    try {
+        $pdo->beginTransaction();
+
+        // Insere na tabela `pessoa`
+        $stmtPessoa = $pdo->prepare("INSERT INTO pessoa (nome, ender, fone, is_admin) VALUES (?, ?, ?, ?)");
+        $stmtPessoa->execute([$data['nome'], $data['ender'], $data['fone'], $data['is_admin'] ? 'true' : 'false']);
+
+        // Obtém o ID gerado
+        $pess_id = $pdo->lastInsertId();
+
+        // Insere na tabela `funcionario`
+        $stmtFuncionario = $pdo->prepare("INSERT INTO funcionario (pess_id, cpf, senha) VALUES (?, ?, ?)");
+        $stmtFuncionario->execute([$pess_id, $data['cpf'], $senhaHash]);
+
+        $pdo->commit();
+
+        // Retorna o novo colaborador com o ID
+        echo json_encode([
+            "id" => $pess_id,
+            "nome" => $data['nome'],
+            "cpf" => $data['cpf'],
+            "senha" => "********",
+            "ender" => $data['ender'],
+            "fone" => $data['fone'],
+            "is_admin" => $data['is_admin']
+        ]);
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        echo json_encode(["error" => "Erro ao adicionar colaborador: " . $e->getMessage()]);
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE' && isset($_GET['action']) && $_GET['action'] === 'deleteColaborador') {
+    header('Content-Type: application/json');
     $id = $_GET['id'];
 
-    if ($id) {
-        $stmt = $pdo->prepare("DELETE FROM pessoa WHERE pess_id = ?");
-        if ($stmt->execute([$id])) {
+    // Validação do ID
+    if (!is_numeric($id)) {
+        echo json_encode(["error" => "ID inválido"]);
+        exit;
+    }
+
+    try {
+        // Inicia uma transação
+        $pdo->beginTransaction();
+
+        // Exclui o registro da tabela `funcionario`
+        $stmtFuncionario = $pdo->prepare("DELETE FROM funcionario WHERE pess_id = ?");
+        $stmtFuncionario->execute([$id]);
+
+        // Exclui o registro da tabela `pessoa`
+        $stmtPessoa = $pdo->prepare("DELETE FROM pessoa WHERE pess_id = ?");
+        $stmtPessoa->execute([$id]);
+
+        // Verifica se algum registro foi excluído
+        if ($stmtPessoa->rowCount() > 0) {
+            $pdo->commit();
             echo json_encode(["message" => "Colaborador deletado com sucesso"]);
         } else {
-            echo json_encode(["error" => "Erro ao deletar colaborador"]);
+            $pdo->rollBack();
+            echo json_encode(["error" => "Nenhum colaborador encontrado com este ID"]);
         }
-    } else {
-        echo json_encode(["error" => "Dados inválidos recebidos"]);
+    } catch (PDOException $e) {
+        // Reverte a transação em caso de erro
+        $pdo->rollBack();
+        error_log('Erro PDO: ' . $e->getMessage());
+        echo json_encode(["error" => "Erro interno no servidor"]);
     }
 }
 

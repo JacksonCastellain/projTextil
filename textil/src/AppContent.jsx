@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import Home from './components/Home';
 import Login from './components/Login';
 import Colaboradores from './components/Colaboradores';
+import Clientes from './components/Clientes';
 import './styles/App.css'; 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -24,6 +25,7 @@ function AppContent() {
         <Route path="/" element={<Login />} />
         <Route path="/home" element={<Home />} />
         <Route path='/colaboradores' element={<Colaboradores />} />
+        <Route path='/clientes' element={<Clientes />} />
       </Routes>
     </div>
   );

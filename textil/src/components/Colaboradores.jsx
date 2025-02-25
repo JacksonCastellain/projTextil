@@ -18,7 +18,6 @@ const Colaboradores = () => {
 
   useEffect(() => {
     fetchColaboradores();
-    deleteColaborador();
   }, []);
 
   const fetchColaboradores = async () => {
@@ -27,9 +26,17 @@ const Colaboradores = () => {
         credentials: 'include'
       });
       const data = await response.json();
-      setColaboradores(data);
+  
+      // Verifica se a resposta contém a propriedade "colaboradores"
+      if (data.colaboradores) {
+        setColaboradores(data.colaboradores); // Atualiza o estado com o array correto
+      } else {
+        console.error('Erro: Propriedade "colaboradores" não encontrada na resposta da API.');
+        setColaboradores([]); // Define um array vazio como fallback
+      }
     } catch (error) {
       console.error('Erro ao buscar colaboradores:', error);
+      setColaboradores([]); // Define um array vazio em caso de erro
     }
   };
 
@@ -51,21 +58,22 @@ const Colaboradores = () => {
     }
   };
 
-  const updateColaborador = (updatedColaborador) => {
-    if (updatedColaborador.id) {
-      setColaboradores((prevColaboradores) =>
-        prevColaboradores.map((colaborador) =>
-          colaborador.id === updatedColaborador.id ? updatedColaborador : colaborador
-        )
-      );
-      setModalMode('edit');
-      setShowModalSucesso(true);
-    } else {
-      setColaboradores((prevColaboradores) => [...prevColaboradores, updatedColaborador]);
-      setModalMode('add');
-      setShowModalSucesso(true);
-    }
-  };
+const updateColaborador = (updatedColaborador) => {
+  if (updatedColaborador.id) {
+    // Atualiza um colaborador existente
+    setColaboradores((prevColaboradores) =>
+      prevColaboradores.map((colaborador) =>
+        colaborador.id === updatedColaborador.id ? updatedColaborador : colaborador
+      )
+    );
+    setModalMode('edit');
+    setShowModalSucesso(true);
+  } else {
+    setColaboradores((prevColaboradores) => [...prevColaboradores, updatedColaborador]);
+    setModalMode('add');
+    setShowModalSucesso(true);
+  }
+};
 
   const handleShowModal = (colaborador) => {
     setSelectedColaborador(colaborador || null);
