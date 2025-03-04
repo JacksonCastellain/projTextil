@@ -27,7 +27,6 @@ const ModalColaboradores = ({ show, onClose, colaborador, onUpdate, mode }) => {
   const [formState, dispatch] = useReducer(formReducer, initialState);
   const [showModalError, setShowModalError] = useState(false);
 
-  // Resetar o formulário ao abrir o modal
   useEffect(() => {
     if (mode === 'edit' && colaborador) {
       dispatch({ type: 'SET_FIELD', field: 'nome', value: colaborador.nome });
@@ -38,7 +37,7 @@ const ModalColaboradores = ({ show, onClose, colaborador, onUpdate, mode }) => {
     } else {
       dispatch({ type: 'RESET_FORM' });
     }
-  }, [colaborador, mode]);
+  }, [show, colaborador, mode]);
 
   const handleSave = async () => {
     try {
@@ -49,47 +48,27 @@ const ModalColaboradores = ({ show, onClose, colaborador, onUpdate, mode }) => {
       const method = mode === 'edit' ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          nome: formState.nome,
-          cpf: formState.cpf,
-          senha: formState.senha,
-          ender: formState.ender,
-          fone: formState.fone,
-          is_admin: formState.is_admin,
-        }),
+        method,
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(formState),
         credentials: 'include',
       });
 
       if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-
-      if (result.error) {
-        throw new Error(result.error);
+        throw new Error("Erro ao salvar colaborador");
       }
 
       if (mode === 'edit' && colaborador) {
-        onUpdate((prevColaboradores) =>
-          prevColaboradores.map((item) =>
-            item.id === colaborador.id ? { ...item, ...result } : item
-          )
-        );
-      }
-
-      if (mode === 'add') {
-        onUpdate((prevColaboradores) => [...prevColaboradores, result]);
+        onUpdate({ ...colaborador, ...formState });
+      } else {
+        const data = await response.json();
+        onUpdate(data.colaborador);
       }
 
       onClose();
     } catch (error) {
       setShowModalError(true);
-      console.error('Erro na requisição:', error.message);
+      console.error('Erro ao salvar colaboradores:', error);
     }
   };
 

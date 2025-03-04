@@ -43,8 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT' && isset($_GET['action']) && $_GET['act
     $id = $_GET['id'];
 
     // Validação dos campos obrigatórios
-    if (!$id || !$data['nome'] || !$data['cpf'] || !$data['senha']) {
-        echo json_encode(["error" => "ID, nome, CPF e senha são obrigatórios"]);
+    if (!$id ) {
+        echo json_encode(["error" => "ID é obrigatório"]);
         exit;
     }
 
@@ -83,9 +83,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     header('Content-Type: application/json');
     $data = json_decode(file_get_contents('php://input'), true);
 
+    function limparCPF($cpf) {
+        return preg_replace('/[^0-9]/', '', $cpf);
+    }
+
+    function validarCPF($cpf) {
+
+        if (strlen($cpf) != 11) {
+            return false;
+        }
+
+        // Verifica se todos os dígitos são iguais
+        if (preg_match('/(\d)\1{10}/', $cpf)) {
+            return false;
+        }
+
+        // Calcula os dígitos verificadores para verificar se o CPF é válido
+        for ($t = 9; $t < 11; $t++) {
+            for ($d = 0, $c = 0; $c < $t; $c++) {
+                $d += $cpf[$c] * (($t + 1) - $c);
+            }
+            $d = ((10 * $d) % 11) % 10;
+            if ($cpf[$c] != $d) {
+                return false;
+            }
+        }
+
+        return true;
+    }
     // Validação dos campos obrigatórios
     if (!$data['nome'] || !$data['cpf'] || !$data['senha']) {
-        echo json_encode(["error" => "Nome, CPF e senha são obrigatórios"]);
+        echo json_encode(["error" => "Nome, CPF e senha sao obrigatorios"]);
+        exit;
+    }
+
+    $cpfLimpo = limparCPF($data['cpf']);
+    if (!validarCPF($cpfLimpo)) {
+        echo json_encode(["error" => "CPF inválido"]);
         exit;
     }
 
@@ -103,11 +137,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
 
         // Insere na tabela `funcionario`
         $stmtFuncionario = $pdo->prepare("INSERT INTO funcionario (pess_id, cpf, senha) VALUES (?, ?, ?)");
-        $stmtFuncionario->execute([$pess_id, $data['cpf'], $senhaHash]);
+        $stmtFuncionario->execute([$pess_id, $cpfLimpo, $senhaHash]);
 
         $pdo->commit();
 
         // Retorna o novo colaborador com o ID
+        http_response_code(201);
         echo json_encode([
             "id" => $pess_id,
             "nome" => $data['nome'],
@@ -126,12 +161,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
 if ($_SERVER['REQUEST_METHOD'] === 'DELETE' && isset($_GET['action']) && $_GET['action'] === 'deleteColaborador') {
     header('Content-Type: application/json');
     $id = $_GET['id'];
-
-    // Validação do ID
-    if (!is_numeric($id)) {
-        echo json_encode(["error" => "ID inválido"]);
-        exit;
-    }
 
     try {
         // Inicia uma transação

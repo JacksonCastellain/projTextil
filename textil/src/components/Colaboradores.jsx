@@ -14,11 +14,18 @@ const Colaboradores = () => {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5); 
+  const [itemsPerPage] = useState(5);
 
   useEffect(() => {
     fetchColaboradores();
   }, []);
+
+  useEffect(() => {
+    const totalPages = Math.ceil(colaboradores.length / itemsPerPage);
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages || 1); // Ajusta para a última página válida
+    }
+  }, [colaboradores, currentPage, itemsPerPage]);
 
   const fetchColaboradores = async () => {
     try {
@@ -26,17 +33,16 @@ const Colaboradores = () => {
         credentials: 'include'
       });
       const data = await response.json();
-  
-      // Verifica se a resposta contém a propriedade "colaboradores"
+
       if (data.colaboradores) {
-        setColaboradores(data.colaboradores); // Atualiza o estado com o array correto
+        setColaboradores(data.colaboradores);
       } else {
         console.error('Erro: Propriedade "colaboradores" não encontrada na resposta da API.');
-        setColaboradores([]); // Define um array vazio como fallback
+        setColaboradores([]);
       }
     } catch (error) {
       console.error('Erro ao buscar colaboradores:', error);
-      setColaboradores([]); // Define um array vazio em caso de erro
+      setColaboradores([]);
     }
   };
 
@@ -58,22 +64,32 @@ const Colaboradores = () => {
     }
   };
 
-const updateColaborador = (updatedColaborador) => {
-  if (updatedColaborador.id) {
-    // Atualiza um colaborador existente
-    setColaboradores((prevColaboradores) =>
-      prevColaboradores.map((colaborador) =>
-        colaborador.id === updatedColaborador.id ? updatedColaborador : colaborador
-      )
-    );
-    setModalMode('edit');
-    setShowModalSucesso(true);
-  } else {
-    setColaboradores((prevColaboradores) => [...prevColaboradores, updatedColaborador]);
-    setModalMode('add');
-    setShowModalSucesso(true);
-  }
-};
+  const updateColaborador = async (updatedColaborador) => {
+
+    try {
+      const response = await fetch("http://localhost:80/server.php?action=addColaborador", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedColaborador),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        fetchColaboradores();
+
+        handleCloseModal();
+        setShowModalSucesso(true);
+
+        const totalPages = Math.ceil(colaboradores.length / itemsPerPage);
+        setCurrentPage(totalPages || 1);
+        
+      } else {
+        console.error('Erro ao adicionar colaborador:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar colaborador:', error);
+    }
+  };
 
   const handleShowModal = (colaborador) => {
     setSelectedColaborador(colaborador || null);
@@ -90,7 +106,7 @@ const updateColaborador = (updatedColaborador) => {
     setShowModalSucesso(false);
   };
 
-  // Pagination 
+  // Pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = colaboradores.slice(indexOfFirstItem, indexOfLastItem);
@@ -106,7 +122,7 @@ const updateColaborador = (updatedColaborador) => {
       <NavBar />
       <h1>Colaboradores</h1>
       <div className="row justify-content-end mx-2 mb-1">
-        <button className="btn btn-success col-3 col-md-1" onClick={() => handleShowModal(null, 'add')}>Novo</button>
+        <button className="btn btn-success col-3 col-md-1" onClick={() => handleShowModal(null)}>Novo</button>
       </div>
       <Card>
         <Card.Body>
@@ -122,35 +138,42 @@ const updateColaborador = (updatedColaborador) => {
               </tr>
             </thead>
             <tbody>
-              {currentItems.map((colaborador) => (
-                <tr key={colaborador.id}>
-                  <td>{colaborador.id}</td>
-                  <td>{colaborador.nome}</td>
-                  <td>{colaborador.ender}</td>
-                  <td>{colaborador.fone}</td>
-                  <td className={colaborador.is_admin ? 'admin-yes' : 'admin-no'}>
-                    {colaborador.is_admin ? 'Sim' : 'Não'}
-                  </td>
-                  <td>
-                    <div className="d-flex justify-content-around">
-                      <button
-                        type="button"
-                        className="btn btn-warning"
-                        onClick={() => handleShowModal(colaborador, 'edit')}
-                      >
-                        Editar
-                      </button>
-                      <button 
-                        type="button" 
-                        className="btn btn-danger"
-                        onClick={() => deleteColaborador(colaborador.id)}
-                      >
-                        Excluir
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {currentItems.map((colaborador, index) => {
+                if (!colaborador || typeof colaborador.id === 'undefined') {
+                  console.warn(`Elemento inválido encontrado no índice ${index}:`, colaborador);
+                  return null;
+                }
+
+                return (
+                  <tr key={colaborador.id}>
+                    <td>{colaborador.id}</td>
+                    <td>{colaborador.nome}</td>
+                    <td>{colaborador.ender}</td>
+                    <td>{colaborador.fone}</td>
+                    <td className={colaborador.is_admin ? 'admin-yes' : 'admin-no'}>
+                      {colaborador.is_admin ? 'Sim' : 'Não'}
+                    </td>
+                    <td>
+                      <div className="d-flex justify-content-around">
+                        <button
+                          type="button"
+                          className="btn btn-warning"
+                          onClick={() => handleShowModal(colaborador)}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-danger"
+                          onClick={() => deleteColaborador(colaborador.id)}
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </Table>
 
@@ -173,7 +196,7 @@ const updateColaborador = (updatedColaborador) => {
           </div>
         </Card.Body>
       </Card>
-            
+
       <ModalColaboradores
         show={showModal}
         onClose={handleCloseModal}
@@ -192,4 +215,3 @@ const updateColaborador = (updatedColaborador) => {
 };
 
 export default Colaboradores;
-
